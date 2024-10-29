@@ -1,9 +1,8 @@
 require("@nomiclabs/hardhat-ethers");
-require("solidity-coverage"); // Test coverage
+require("solidity-coverage");
 require("dotenv").config();
-// import "@openzeppelin/contracts/security/ReentrancyGuard.sol"; // Incorrect import statement
 
-module.exports = {
+const config = {
   solidity: {
     version: "0.8.20",
     settings: {
@@ -16,7 +15,14 @@ module.exports = {
   networks: {
     amoy: {
       url: process.env.POLYGON_AMOY_RPC_URL,
-      accounts: [`0x${process.env.PRIVATE_KEY}`],
+      accounts: [
+        `0x${process.env.OWNER_PRIVATE_KEY}`, // Owner
+        `0x${process.env.ADMIN1_PRIVATE_KEY}`, // Admin 1
+        `0x${process.env.ADMIN2_PRIVATE_KEY}`, // Admin 2
+        `0x${process.env.NON_ADMIN_PRIVATE_KEY}`, // Non-admin
+      ],
     },
   },
 };
+
+module.exports = config;
