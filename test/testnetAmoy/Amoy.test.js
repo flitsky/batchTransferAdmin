@@ -1,7 +1,8 @@
 // Import necessary modules
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { env } = require("../../hardhat.config.js");
+
+const moduleConf = require('../../config/config.js');  // config.js
 
 // Define the test suite for the BatchTransferAdmin contract on testnet
 describe("BatchTransferAdmin Tests on Amoy Testnet", function () {
@@ -11,12 +12,12 @@ describe("BatchTransferAdmin Tests on Amoy Testnet", function () {
   // Before each test, deploy the contracts and set up initial state
   before(async function () {
     // 개인 키를 Wallet 객체로 변환하고 Signer로 설정
-    const wallets = config.networks.amoy.accounts.map(
+    const moduleWallets = moduleConf.accounts.map(
       (privateKey) => new ethers.Wallet(privateKey, ethers.provider)
     );
 
     [owner, admin1, admin2, nonAdmin] = await Promise.all(
-      wallets.map((wallet) => wallet.connect(ethers.provider))
+      moduleWallets.map((wallet) => wallet.connect(ethers.provider))
     );
 
     // 기존에 배포된 BatchTransferAdmin 계약을 연결

@@ -14,6 +14,7 @@
     "@nomiclabs/hardhat-etherscan": "^3.1.8",
     "@openzeppelin/contracts": "^5.1.0",
     "hardhat-gas-reporter": "^2.2.1",
-    "solidity-coverage": "^0.8.13"
+    "solidity-coverage": "^0.8.13",
+    "web3": "^4.14.0"
   }
 }
