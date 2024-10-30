@@ -1,7 +1,9 @@
 // Import necessary modules
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { env } = require("../../hardhat.config.js");
+
+const moduleConf = require('../../config/config.js');  // config.js
+// const { core } = require("../../core/core.js"); // core 모듈 전체를 불러옴
 
 // Define the test suite for the BatchTransferAdmin contract on testnet
 describe("BatchTransferAdmin Tests on Amoy Testnet", function () {
@@ -11,12 +13,12 @@ describe("BatchTransferAdmin Tests on Amoy Testnet", function () {
   // Before each test, deploy the contracts and set up initial state
   before(async function () {
     // 개인 키를 Wallet 객체로 변환하고 Signer로 설정
-    const wallets = config.networks.amoy.accounts.map(
+    const moduleWallets = moduleConf.accounts.map(
       (privateKey) => new ethers.Wallet(privateKey, ethers.provider)
     );
 
     [owner, admin1, admin2, nonAdmin] = await Promise.all(
-      wallets.map((wallet) => wallet.connect(ethers.provider))
+      moduleWallets.map((wallet) => wallet.connect(ethers.provider))
     );
 
     // 기존에 배포된 BatchTransferAdmin 계약을 연결
@@ -26,13 +28,22 @@ describe("BatchTransferAdmin Tests on Amoy Testnet", function () {
     const deployedContractAddress =
       "0xCd3b0FE58cC79152935e77a8E9e43742dc548B1C";
     contract = await BatchTransferAdmin.attach(deployedContractAddress); // 배포된 계약 주소
+
+    // 네트워크 체인 정보 주입
+    // Amoy 테스트넷 연결 설정
+    // const networkConnection = await config.utils.initializeTestNetwork('polygon', 'amoy');
+    // web3 = networkConnection.web3;
+    
+    // owner EOA 트랜잭션 존재 여부 확인
+    // const hasTransactions = await core.hasTransactions(web3, owner.address);
+    // console.log("Has transactions:", hasTransactions);
   });
 
   it("Should perform a batch transfer on Polygon Amoy", async function () {
     const recipients = [admin1.address, admin2.address];
     const amounts = [
-      ethers.utils.parseEther("0.123"),
-      ethers.utils.parseEther("0.135"),
+      ethers.utils.parseEther("0.0123"),
+      ethers.utils.parseEther("0.0135"),
     ];
     // Calculate total amount to be sent
     const totalAmount = amounts.reduce(

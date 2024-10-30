@@ -2,7 +2,7 @@ require("@nomiclabs/hardhat-ethers");
 require("solidity-coverage");
 require("dotenv").config();
 
-const config = {
+const hardhatConfig = {
   solidity: {
     version: "0.8.20",
     settings: {
@@ -25,4 +25,4 @@ const config = {
   },
 };
 
-module.exports = config;
+module.exports = hardhatConfig;
