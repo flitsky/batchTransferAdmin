@@ -1,9 +1,7 @@
 // Import necessary modules
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-
-const moduleConf = require('../../config/config.js');  // config.js
-// const { core } = require("../../core/core.js"); // core 모듈 전체를 불러옴
+const { env } = require("../../hardhat.config.js");
 
 // Define the test suite for the BatchTransferAdmin contract on testnet
 describe("BatchTransferAdmin Tests on Amoy Testnet", function () {
