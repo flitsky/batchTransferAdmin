@@ -1,7 +1,7 @@
 // Import necessary modules
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { env } = require("../../hardhat.config.js");
+const moduleConf = require('../../config/config.js');  // config.js
 
 // Define the test suite for the BatchTransferAdmin contract on testnet
 describe("BatchTransferAdmin Tests on Amoy Testnet", function () {
