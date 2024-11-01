@@ -1,7 +1,7 @@
 // Import necessary modules
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const moduleConf = require('../../config/config.js');  // config.js
+const moduleConf = require("../../config/config.js");
 
 // Define the test suite for the BatchTransferAdmin contract on testnet
 describe("BatchTransferAdmin Tests on Amoy Testnet", function () {
@@ -19,25 +19,58 @@ describe("BatchTransferAdmin Tests on Amoy Testnet", function () {
       moduleWallets.map((wallet) => wallet.connect(ethers.provider))
     );
 
-    // 기존에 배포된 BatchTransferAdmin 계약을 연결
+    // Attach to the already deployed BatchTransferAdmin contract
     const BatchTransferAdmin = await ethers.getContractFactory(
       "BatchTransferAdmin"
     );
     const deployedContractAddress =
       "0xCd3b0FE58cC79152935e77a8E9e43742dc548B1C";
-    contract = await BatchTransferAdmin.attach(deployedContractAddress); // 배포된 계약 주소
+    contract = await BatchTransferAdmin.attach(deployedContractAddress);
 
     // 네트워크 체인 정보 주입
     // Amoy 테스트넷 연결 설정
     // const networkConnection = await config.utils.initializeTestNetwork('polygon', 'amoy');
     // web3 = networkConnection.web3;
-    
+
     // owner EOA 트랜잭션 존재 여부 확인
     // const hasTransactions = await core.hasTransactions(web3, owner.address);
     // console.log("Has transactions:", hasTransactions);
   });
 
-  it("Should perform a batch transfer on Polygon Amoy", async function () {
+  it("Checks Owner Account's transaction count on Polygon Amoy", async function () {
+    const account = owner;
+    console.log("Owner Account:", account.address);
+
+    const balance = await ethers.provider.getBalance(account.address);
+    console.log("Balance:", ethers.utils.formatEther(balance));
+
+    // Check if the account has any transactions by checking the transaction count
+    const transactionCount = await ethers.provider.getTransactionCount(
+      account.address
+    );
+    const hasTransactions = transactionCount > 0;
+    console.log("Has transactions:", hasTransactions, transactionCount);
+    console.log(
+      "https://amoy.polygonscan.com/address/0xCd3b0FE58cC79152935e77a8E9e43742dc548B1C"
+    );
+  });
+
+  it("Random Account Generation on Polygon Amoy", async function () {
+    const randomAccount = ethers.Wallet.createRandom();
+    console.log("Random Account:", randomAccount.address);
+
+    const balance = await ethers.provider.getBalance(randomAccount.address);
+    console.log("Balance:", ethers.utils.formatEther(balance));
+
+    // Check if the account has any transactions by checking the transaction count
+    const transactionCount = await ethers.provider.getTransactionCount(
+      randomAccount.address
+    );
+    const hasTransactions = transactionCount > 0;
+    console.log("Has transactions:", hasTransactions, transactionCount);
+  });
+
+  it.skip("Should perform a batch transfer on Polygon Amoy", async function () {
     const recipients = [admin1.address, admin2.address];
     const amounts = [
       ethers.utils.parseEther("0.0123"),

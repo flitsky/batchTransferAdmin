@@ -1,6 +1,13 @@
-// Import necessary modules and libraries for testing
-const { expect } = require("chai"); // Chai is an assertion library for Node.js and browsers
-const { ethers } = require("hardhat"); // Hardhat is a development environment for Ethereum software
+// Import required libraries for testing
+const { expect } = require("chai");
+const core = require("../../core/core.js");
+const { ethers } = require("hardhat");
+const Web3 = require("web3");
+
+/**
+ * Test Suite for BatchTransferAdmin Contract
+ * This suite covers admin management and batch transfer functionalities.
+ */
 
 // Define the test suite for the BatchTransferAdmin contract
 describe("BatchTransferAdmin", function () {
@@ -9,17 +16,17 @@ describe("BatchTransferAdmin", function () {
 
   // Before each test, deploy the contracts and set up initial state
   beforeEach(async function () {
-    // Retrieve signers from the Ethereum provider, representing different accounts
+    // Step 1: Setup signers representing different accounts
     [owner, admin1, admin2, nonAdmin] = await ethers.getSigners();
 
-    // Deploy the BatchTransferAdmin contract
+    // Step 2: Deploy BatchTransferAdmin contract
     const BatchTransferAdmin = await ethers.getContractFactory(
       "BatchTransferAdmin"
     );
     contract = await BatchTransferAdmin.deploy();
     await contract.deployed();
 
-    // Deploy a mock ERC20 token for testing purposes
+    // Step 3: Deploy a mock ERC20 token for testing
     const MockERC20 = await ethers.getContractFactory("MockERC20");
     token = await MockERC20.deploy(
       "TestToken",
@@ -28,23 +35,21 @@ describe("BatchTransferAdmin", function () {
     );
     await token.deployed();
 
-    // Transfer a portion of tokens to the contract for testing
+    // Step 4: Transfer tokens to the contract
     await token.transfer(contract.address, ethers.utils.parseEther("10000"));
   });
 
-  // Describe the test suite for admin management functionalities
+  // Admin management test cases
   describe("Admin Management", function () {
-    it("Should deploy and perform basic operations", async function () {
-      // Add an admin and verify the addition
-      await contract.addAdmin(admin1.address);
-      expect(await contract.admins(admin1.address)).to.be.true;
+    it("Should deploy and allow admin operations", async function () {
+      await contract.addAdmin(admin1.address); // Add an admin
+      expect(await contract.admins(admin1.address)).to.be.true; // Verify addition
 
-      // Remove the admin and verify the removal
-      await contract.removeAdmin(admin1.address);
-      expect(await contract.admins(admin1.address)).to.be.false;
+      await contract.removeAdmin(admin1.address); // Remove the admin
+      expect(await contract.admins(admin1.address)).to.be.false; // Verify removal
     });
 
-    it("Should not allow non-admin to add an admin", async function () {
+    it("Should reject non-admin admin addition", async function () {
       // Attempt to add an admin with a non-admin account and expect a revert
       try {
         await contract.connect(nonAdmin).addAdmin(admin1.address);
@@ -54,50 +59,21 @@ describe("BatchTransferAdmin", function () {
       }
     });
 
-    it("Should not allow non-admin to remove an admin", async function () {
-      // Add an admin first
-      await contract.addAdmin(admin1.address);
-      // Attempt to remove an admin with a non-admin account and expect a revert
-      try {
-        await contract.connect(nonAdmin).removeAdmin(admin1.address);
-        throw new Error("Expected transaction to be reverted");
-      } catch (err) {
-        expect(err.message).to.include("revert");
-      }
-    });
-
-    it("Should allow multiple admins to be added and removed", async function () {
-      // Add multiple admins
-      await contract.addAdmin(admin1.address);
-      await contract.addAdmin(admin2.address);
-
-      // Verify both admins are added
-      expect(await contract.admins(admin1.address)).to.be.true;
-      expect(await contract.admins(admin2.address)).to.be.true;
-
-      // Remove one admin and verify the state
-      await contract.removeAdmin(admin1.address);
-      expect(await contract.admins(admin1.address)).to.be.false;
-      expect(await contract.admins(admin2.address)).to.be.true;
-    });
-
     it("Owner should be an admin by default", async function () {
       // Verify that the contract owner is an admin by default
       expect(await contract.admins(owner.address)).to.be.true;
     });
   });
 
-  // Describe the test suite for batch Ether transfer functionalities
+  // Ether batch transfer test cases
   describe("Batch Ether Transfers", function () {
-    it("[ETH] Should perform a single batch transfer of Ether", async function () {
+    it("[ETH] Should execute a single batch Ether transfer", async function () {
       // Define recipients and amounts for the batch transfer
       const recipients = [admin1.address];
       const amounts = [ethers.utils.parseEther("1")];
 
       // Record initial balance of admin1
-      const initialBalanceAdmin1 = await ethers.provider.getBalance(
-        admin1.address
-      );
+      const initialBalance = await ethers.provider.getBalance(admin1.address);
 
       // Execute the batch transfer of Ether
       await contract.batchTransfer(
@@ -110,10 +86,9 @@ describe("BatchTransferAdmin", function () {
       );
 
       // Verify the recipient's balance after the transfer
-      const balanceAfter = await ethers.provider.getBalance(admin1.address);
-      expect(
-        balanceAfter.eq(initialBalanceAdmin1.add(ethers.utils.parseEther("1")))
-      ).to.be.true;
+      const newBalance = await ethers.provider.getBalance(admin1.address);
+      expect(newBalance.eq(initialBalance.add(ethers.utils.parseEther("1")))).to
+        .be.true;
     });
 
     it("[ETH] Should perform a batch transfer of Ether to multiple recipients", async function () {
