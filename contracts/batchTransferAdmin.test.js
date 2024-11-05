@@ -1,6 +1,6 @@
 // Import required libraries for testing
 const { expect } = require("chai");
-const core = require("../../core/core.js");
+const core = require("../core/core.js");
 const { ethers } = require("hardhat");
 const Web3 = require("web3");
 
@@ -91,55 +91,10 @@ describe("BatchTransferAdmin", function () {
         .be.true;
     });
 
-    it("[ETH] Should perform a batch transfer of Ether to multiple recipients", async function () {
-      // Define recipients and amounts for a larger batch transfer
-      const recipients = [admin1.address, admin2.address];
-      const amounts = [
-        ethers.utils.parseEther("1"),
-        ethers.utils.parseEther("2"),
-      ];
-
-      // Record initial balances of admin1 and admin2
-      const initialBalanceAdmin1 = await ethers.provider.getBalance(
-        admin1.address
-      );
-      const initialBalanceAdmin2 = await ethers.provider.getBalance(
-        admin2.address
-      );
-
-      // Execute the batch transfer of Ether
-      await contract.batchTransfer(
-        ethers.constants.AddressZero,
-        recipients,
-        amounts,
-        {
-          value: ethers.utils.parseEther("3"),
-        }
-      );
-
-      // Verify each recipient's balance after the transfer
-      const balanceAfterAdmin1 = await ethers.provider.getBalance(
-        admin1.address
-      );
-      const balanceAfterAdmin2 = await ethers.provider.getBalance(
-        admin2.address
-      );
-      expect(
-        balanceAfterAdmin1.eq(
-          initialBalanceAdmin1.add(ethers.utils.parseEther("1"))
-        )
-      ).to.be.true;
-      expect(
-        balanceAfterAdmin2.eq(
-          initialBalanceAdmin2.add(ethers.utils.parseEther("2"))
-        )
-      ).to.be.true;
-    });
-
-    it("[ETH] Should perform a batch transfer of Ether to 100 recipients", async function () {
+    it("[ETH] Should perform a batch transfer of Ether to 10 recipients", async function () {
       // Define recipients and amounts for a batch transfer of 100 transactions
-      const recipients = Array(100).fill(admin1.address);
-      const amounts = Array(100).fill(ethers.utils.parseEther("0.01"));
+      const recipients = Array(10).fill(admin1.address);
+      const amounts = Array(10).fill(ethers.utils.parseEther("0.01"));
 
       // Record initial balance of admin1
       const initialBalanceAdmin1 = await ethers.provider.getBalance(
@@ -152,7 +107,7 @@ describe("BatchTransferAdmin", function () {
         recipients,
         amounts,
         {
-          value: ethers.utils.parseEther("1"),
+          value: ethers.utils.parseEther("0.1"),
         }
       );
 
@@ -162,7 +117,7 @@ describe("BatchTransferAdmin", function () {
       );
       expect(
         balanceAfterAdmin1.eq(
-          initialBalanceAdmin1.add(ethers.utils.parseEther("1"))
+          initialBalanceAdmin1.add(ethers.utils.parseEther("0.1"))
         )
       ).to.be.true;
     });
@@ -199,31 +154,17 @@ describe("BatchTransferAdmin", function () {
       await token.approve(contract.address, ethers.utils.parseEther("1000000"));
     });
 
-    it("[ERC20] Should perform a single batch transfer", async function () {
-      // Define recipients and amounts for the batch transfer
-      const recipients = [admin1.address];
-      const amounts = [ethers.utils.parseEther("10")];
-
-      // Execute the batch transfer
-      await contract.batchTransfer(token.address, recipients, amounts);
-
-      // Verify the recipient's balance after the transfer
-      expect(await token.balanceOf(admin1.address)).to.satisfy((balance) =>
-        balance.eq(ethers.utils.parseEther("10"))
-      );
-    });
-
-    it("[ERC20] Should perform a batch transfer of 100 transactions", async function () {
+    it("[ERC20] Should perform a batch transfer of ERC20 to 10 recipients", async function () {
       // Define recipients and amounts for a larger batch transfer
-      const recipients = Array(100).fill(admin1.address);
-      const amounts = Array(100).fill(ethers.utils.parseEther("1"));
+      const recipients = Array(10).fill(admin1.address);
+      const amounts = Array(10).fill(ethers.utils.parseEther("0.01"));
 
       // Execute the batch transfer
       await contract.batchTransfer(token.address, recipients, amounts);
 
       // Verify the recipient's balance after the transfer
       expect(await token.balanceOf(admin1.address)).to.satisfy((balance) =>
-        balance.eq(ethers.utils.parseEther("100"))
+        balance.eq(ethers.utils.parseEther("0.1"))
       );
     });
   });

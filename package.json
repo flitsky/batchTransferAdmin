@@ -1,7 +1,9 @@
 {
   "scripts": {
-    "localtest": "npx hardhat test ./test/local/test.js",
-    "amoytest": "npx hardhat test ./test/testnetAmoy/Amoy.test.js --network amoy"
+    "test:contracts": "npx hardhat test ./contracts/batchTransferAdmin.test.js",
+    "test:core": "npx hardhat test ./core/core.test.js",
+    "test:integration": "npx hardhat test ./test/integration/integration.test.js --network amoy",
+    "test:e2e": "npx hardhat test ./test/e2e/e2e.test.js"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.2.3",
@@ -13,7 +15,9 @@
   "dependencies": {
     "@nomiclabs/hardhat-etherscan": "^3.1.8",
     "@openzeppelin/contracts": "^5.1.0",
+    "fast-csv": "^5.0.2",
     "hardhat-gas-reporter": "^2.2.1",
+    "sinon": "^19.0.2",
     "solidity-coverage": "^0.8.13",
     "web3": "^4.14.0"
   }
