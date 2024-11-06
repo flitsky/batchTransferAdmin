@@ -1,26 +1,48 @@
 // Import ethers from Hardhat
 const { ethers } = require("hardhat");
 
+// Import necessary modules
+const csv = require("fast-csv");
+const fs = require("fs");
+
 /**
  * Core.js Module
  * Provides core blockchain functions for account management, transaction checks, balance retrieval, and validation.
  */
 
-let provider;
+let provider = ethers.provider; // Default to Hardhat's provider
+
 /**
  * Function: Initializes the provider.
  * @param {string} network - The name of the network (e.g., 'localhost', 'mainnet').
  */
 function initProvider(network) {
-  provider = ethers.provider; // Using Hardhat's provider
-  console.log("Provider initialized for network:", network);
+  try {
+    if (network) {
+      provider = new ethers.providers.JsonRpcProvider(network);
+    } else {
+      provider = ethers.provider;
+    }
+    console.log(
+      "Provider initialized for network:",
+      network || "default Hardhat provider"
+    );
+  } catch (error) {
+    console.error(
+      "Error initializing provider with network",
+      network,
+      ". Falling back to default provider.",
+      error
+    );
+    provider = ethers.provider;
+  }
 }
 
 /**
  * Function: Generates a new random Ethereum account
  * @returns {object} - Returns the newly created random wallet object
  */
-async function createRandomAccount() {
+async function createRandomWallet() {
   try {
     const wallet = ethers.Wallet.createRandom(); // Step 1: Generate a random wallet
     console.log("New account created:", wallet.address);
@@ -35,12 +57,22 @@ async function createRandomAccount() {
  * Function: Generates a new clean Ethereum account
  * @returns {Promise<object>} - Returns the newly created clean wallet object
  */
-async function createCleanAccount() {
-  let account = await createRandomAccount();
-  while (await hasTransactions(account.address)) {
-    account = await createRandomAccount();
+async function createCleanWallet(maxRetries = 3) {
+  let wallet = await createRandomWallet();
+  let retryCount = 0;
+  while (await hasTransactions(wallet.address)) {
+    retryCount++;
+    if (retryCount > maxRetries) {
+      throw new Error(
+        `Max retries reached (${maxRetries}). Unable to create a clean wallet.`
+      );
+    }
+    console.warn(
+      `Retry ${retryCount}: Wallet address ${wallet.address} has transactions. Generating a new wallet...`
+    );
+    wallet = await createRandomWallet();
   }
-  return account;
+  return wallet;
 }
 
 /**
@@ -105,14 +137,80 @@ function isEOAValid(address) {
   return isValid;
 }
 
+/**
+ * Function: Performs a batch transfer
+ * @param {object} contract - The contract instance to use for the transfer
+ * @param {array} recipients - Array of recipient addresses
+ * @param {array} amounts - Array of amounts to transfer
+ * @returns {Promise<object>} - Returns the transaction receipt
+ */
+async function batchTransferAdmin(contract, recipients, amounts) {
+  const totalAmount = amounts.reduce(
+    (acc, amount) => acc.add(amount),
+    ethers.BigNumber.from(0)
+  );
+
+  const balancesBefore = await Promise.all(
+    recipients.map((address) => ethers.provider.getBalance(address))
+  );
+
+  const tx = await contract.batchTransfer(
+    ethers.constants.AddressZero,
+    recipients,
+    amounts,
+    {
+      value: totalAmount,
+    }
+  );
+
+  // 트랜잭션이 컨컴될 때까지 대기
+  const receipt = await tx.wait(3); // 3 confirmations
+
+  // 트랜잭션 수신자의 잔액 확인
+  const balancesAfter = await Promise.all(
+    recipients.map((address) => ethers.provider.getBalance(address))
+  );
+
+  for (let i = 0; i < recipients.length; i++) {
+    const balanceChange = balancesAfter[i].sub(balancesBefore[i]);
+    if (balanceChange.toString() !== amounts[i].toString()) {
+      throw new Error(`Balance mismatch for recipient ${recipients[i]}`);
+    }
+  }
+
+  return receipt;
+}
+
+/**
+ * Function: Saves wallet list into a CSV file
+ * @param {array} wallets - Array of wallet objects to save
+ * @param {string} fileName - The name of the CSV file to create
+ * @returns {Promise<void>} - Resolves when the file is successfully written
+ */
+function saveWalletsToCSV(wallets, fileName) {
+  return new Promise((resolve, reject) => {
+    const csvStream = csv.format({ headers: true });
+    const writableStream = fs.createWriteStream(fileName);
+
+    writableStream.on("finish", resolve);
+    writableStream.on("error", reject);
+
+    csvStream.pipe(writableStream);
+    wallets.forEach((wallet) => csvStream.write(wallet));
+    csvStream.end();
+  });
+}
+
 // Exporting core functions for external use
 const core = {
-  createRandomAccount,
-  createCleanAccount,
+  createRandomWallet,
+  createCleanWallet,
   hasTransactions,
   getAccountBalance,
   isEOAValid,
   initProvider,
+  batchTransferAdmin,
+  saveWalletsToCSV,
 };
 
 module.exports = core;

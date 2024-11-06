@@ -25,7 +25,7 @@ describe("Core Module", function () {
 
   describe("createCleanAccount", function () {
     it("Should create a new clean Ethereum account", async function () {
-      const account = await core.createCleanAccount();
+      const account = await core.createCleanWallet();
       expect(account).to.have.property("address");
       expect(ethers.utils.isAddress(account.address)).to.be.true;
       expect(await core.hasTransactions(account.address)).to.be.false;
