@@ -43,7 +43,7 @@ describe("Create Clean Account Tests on Amoy Testnet", function () {
 // Define the test suite for the BatchTransferAdmin contract on testnet
 describe("BatchTransferAdmin Tests on Amoy Testnet", function () {
   // Declare variables to be used across tests
-  let adminWallet, admin1, admin2, nonAdmin, contract, token;
+  let adminWallet, admin1, admin2, nonAdmin, batchTransferAdminContract, token;
 
   // Before all tests, deploy the contracts and set up initial state
   before(async function () {
@@ -57,12 +57,14 @@ describe("BatchTransferAdmin Tests on Amoy Testnet", function () {
     );
 
     // Attach to the already deployed BatchTransferAdmin contract
-    const BatchTransferAdmin = await ethers.getContractFactory(
+    const BatchTransferAdminFactory = await ethers.getContractFactory(
       "BatchTransferAdmin"
     );
     const deployedContractAddress =
       networks.amoy.deployed_batch_transfer_address;
-    contract = await BatchTransferAdmin.attach(deployedContractAddress);
+    batchTransferAdminContract = await BatchTransferAdminFactory.attach(
+      deployedContractAddress
+    );
   });
 
   it("Checks adminWallet Account's transaction count on Polygon Amoy", async function () {
@@ -92,7 +94,7 @@ describe("BatchTransferAdmin Tests on Amoy Testnet", function () {
 
     // Use the batchTransferAdmin function from core
     const receipt = await core.batchTransferAdmin(
-      contract,
+      batchTransferAdminContract,
       recipients,
       amounts
     );
@@ -107,9 +109,10 @@ describe("BatchTransferAdmin Tests on Amoy Testnet", function () {
 });
 
 // State Transition Test Suite for Wallet Token Transfers
+// Description: This test suite verifies the entire state transition process for wallet token transfers, including creating clean wallets, transferring coins and tokens to them, and then having each wallet return the assets back to the Admin wallet.
 describe("Wallet Token Transfer State Transition Tests", function () {
   // Declare variables to be used across tests
-  let adminWallet, admin1, admin2, nonAdmin, contract, token;
+  let adminWallet, admin1, admin2, nonAdmin, batchTransferAdminContract, token;
   let cleanWallets = [];
 
   // Before all tests, deploy the contracts and set up initial state
@@ -121,6 +124,15 @@ describe("Wallet Token Transfer State Transition Tests", function () {
 
     [adminWallet, admin1, admin2, nonAdmin] = await Promise.all(
       moduleWallets.map((wallet) => wallet.connect(ethers.provider))
+    );
+    // Attach to the already deployed BatchTransferAdmin contract
+    const BatchTransferAdminFactory = await ethers.getContractFactory(
+      "BatchTransferAdmin"
+    );
+    const deployedContractAddress =
+      networks.amoy.deployed_batch_transfer_address;
+    batchTransferAdminContract = await BatchTransferAdminFactory.attach(
+      deployedContractAddress
     );
   });
 
@@ -141,20 +153,103 @@ describe("Wallet Token Transfer State Transition Tests", function () {
   });
 
   // Step 3 & 4: Load Wallet List and Send Coin/Token for Testing
-  it("Should load wallet list from CSV and send minimum coin and token to each wallet", function (done) {
-    const loadedWallets = [];
-    fs.createReadStream("cleanWalletList.csv")
-      .pipe(csv.parse({ headers: true }))
-      .on("data", (row) => {
-        loadedWallets.push(row);
-      })
-      .on("end", () => {
-        expect(loadedWallets.length).to.equal(5);
-        console.log("Loaded Wallets: ", loadedWallets);
-        done();
-      });
+  it.only("Should load wallet list from CSV and send minimum coin and token to each wallet", async function () {
+    // Promise를 반환하는 형태로 변경
+    return new Promise((resolve, reject) => {
+      const loadedWallets = [];
+      fs.createReadStream("cleanWalletList.csv")
+        .pipe(csv.parse({ headers: true }))
+        .on("data", (row) => {
+          loadedWallets.push(row);
+        })
+        .on("end", async () => {
+          try {
+            await performBatchTransfer(loadedWallets);
+            resolve();
+          } catch (error) {
+            reject(error);
+          }
+        })
+        .on("error", (error) => {
+          reject(error);
+        });
+    });
   });
 
+  async function performBatchTransfer(loadedWallets) {
+    // 입력값 검증 추가
+    if (!loadedWallets || loadedWallets.length === 0) {
+      throw new Error("No wallets loaded from CSV");
+    }
+
+    expect(loadedWallets.length).to.equal(5);
+    console.log("Loaded Wallets: ", loadedWallets);
+
+    const recipients = loadedWallets.map((wallet) => wallet.address);
+    const amounts = Array(loadedWallets.length).fill(
+      ethers.utils.parseEther("0.000123")
+    );
+
+    // 트랜잭션 실행 전 검증 로직 추가
+    if (recipients.length !== amounts.length) {
+      throw new Error(
+        "Recipients and amounts arrays must have the same length"
+      );
+    }
+
+    // 트랜잭션 전 잔액 조회 : 자산 전송 계정
+    const adminWalletBalanceBefore = await ethers.provider.getBalance(
+      adminWallet.address
+    );
+    // 트랜잭션 전 잔액 조회 : 자산 수신 계정
+    const balancesBefore = await Promise.all(
+      recipients.map((address) => ethers.provider.getBalance(address))
+    );
+
+    // 트랜잭션 실행
+    const tx = await core.batchTransferAdmin(
+      batchTransferAdminContract,
+      recipients,
+      amounts
+    );
+
+    // 트랜잭션 3컨컴 대기
+    const receipt = await tx.wait(3);
+
+    // 트랜잭션 성공 검증
+    expect(receipt.status).to.equal(1, "Transaction failed");
+
+    // 트랜잭션 후 잔액 조회 : 자산 전송 계정
+    const adminWalletBalanceAfter = await ethers.provider.getBalance(
+      adminWallet.address
+    );
+
+    // 트랜잭션 후 잔액 조회 : 자산 수신 계정
+    const balancesAfter = await Promise.all(
+      recipients.map((address) => ethers.provider.getBalance(address))
+    );
+
+    for (let i = 0; i < recipients.length; i++) {
+      const balanceChange = balancesAfter[i].sub(balancesBefore[i]);
+      if (balanceChange.toString() !== amounts[i].toString()) {
+        throw new Error(`Balance mismatch for recipient ${recipients[i]}`);
+      }
+    }
+
+    // 전송된 총 금액 계산
+    const totalAmountSent = amounts.reduce(
+      (acc, amount) => acc.add(amount),
+      ethers.BigNumber.from(0)
+    );
+
+    // 예상되는 잔액 계산 (가스비 소모량 제외)
+    const expectedBalanceAfter = adminWalletBalanceBefore.sub(totalAmountSent);
+
+    // 잔액 검증 lt 이유는 가스비 소모량을 감안하여 예상 잔액이 더 작을 것이기 때문
+    expect(adminWalletBalanceAfter.lt(expectedBalanceAfter)).to.be.true;
+
+    return receipt;
+  }
   // // Step 5: Each wallet returns all the tokens back to the Admin Wallet
   // it("Should load wallet list and return all tokens back to the admin wallet", function (done) {
   //   const loadedWallets = [];

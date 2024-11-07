@@ -150,10 +150,6 @@ async function batchTransferAdmin(contract, recipients, amounts) {
     ethers.BigNumber.from(0)
   );
 
-  const balancesBefore = await Promise.all(
-    recipients.map((address) => ethers.provider.getBalance(address))
-  );
-
   const tx = await contract.batchTransfer(
     ethers.constants.AddressZero,
     recipients,
@@ -163,22 +159,7 @@ async function batchTransferAdmin(contract, recipients, amounts) {
     }
   );
 
-  // 트랜잭션이 컨컴될 때까지 대기
-  const receipt = await tx.wait(3); // 3 confirmations
-
-  // 트랜잭션 수신자의 잔액 확인
-  const balancesAfter = await Promise.all(
-    recipients.map((address) => ethers.provider.getBalance(address))
-  );
-
-  for (let i = 0; i < recipients.length; i++) {
-    const balanceChange = balancesAfter[i].sub(balancesBefore[i]);
-    if (balanceChange.toString() !== amounts[i].toString()) {
-      throw new Error(`Balance mismatch for recipient ${recipients[i]}`);
-    }
-  }
-
-  return receipt;
+  return tx;
 }
 
 /**
