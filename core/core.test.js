@@ -77,7 +77,12 @@ describe("Core Module Unit Test", function () {
       ethers.utils.parseEther("1"),
     ];
 
-    const tx = await core.batchTransferAdmin(contract, recipients, amounts);
+    const tx = await core.batchTransferAdmin(
+      contract,
+      ethers.constants.AddressZero,
+      recipients,
+      amounts
+    );
     expect(tx).to.have.property("wait");
   });
 

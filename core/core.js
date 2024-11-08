@@ -1,7 +1,5 @@
 // Import ethers from Hardhat
 const { ethers } = require("hardhat");
-
-// Import necessary modules
 const csv = require("fast-csv");
 const fs = require("fs");
 
@@ -13,16 +11,14 @@ const fs = require("fs");
 let provider = ethers.provider; // Default to Hardhat's provider
 
 /**
- * Function: Initializes the provider.
+ * Initializes the provider.
  * @param {string} network - The name of the network (e.g., 'localhost', 'mainnet').
  */
 function initProvider(network) {
   try {
-    if (network) {
-      provider = new ethers.providers.JsonRpcProvider(network);
-    } else {
-      provider = ethers.provider; // 하드햇의 기본 프로바이더 사용
-    }
+    provider = network
+      ? new ethers.providers.JsonRpcProvider(network)
+      : ethers.provider;
     console.log(
       "Provider initialized for network:",
       network || "default Hardhat provider"
@@ -34,35 +30,35 @@ function initProvider(network) {
       ". Falling back to default provider.",
       error
     );
-    provider = ethers.provider; // 기본 프로바이더로 fallback
+    provider = ethers.provider;
   }
 }
 
 /**
- * Function: Generates a new random Ethereum account
- * @returns {object} - Returns the newly created random wallet object
+ * Generates a new random Ethereum account.
+ * @returns {Promise<object>} - Returns the newly created random wallet object.
  */
 async function createRandomWallet() {
   try {
-    const wallet = ethers.Wallet.createRandom(); // Step 1: Generate a random wallet
+    const wallet = ethers.Wallet.createRandom();
     console.log("New account created:", wallet.address);
     return wallet;
   } catch (error) {
     console.error("Error creating account:", error);
-    throw error; // Step 2: Signal failure to the caller if an error occurs
+    throw error;
   }
 }
 
 /**
- * Function: Generates a new clean Ethereum account
- * @returns {Promise<object>} - Returns the newly created clean wallet object
+ * Generates a new clean Ethereum account.
+ * @param {number} maxRetries - Maximum number of retries to create a clean wallet.
+ * @returns {Promise<object>} - Returns the newly created clean wallet object.
  */
 async function createCleanWallet(maxRetries = 3) {
   let wallet = await createRandomWallet();
   let retryCount = 0;
   while (await hasTransactions(wallet.address)) {
-    retryCount++;
-    if (retryCount > maxRetries) {
+    if (++retryCount > maxRetries) {
       throw new Error(
         `Max retries reached (${maxRetries}). Unable to create a clean wallet.`
       );
@@ -76,9 +72,9 @@ async function createCleanWallet(maxRetries = 3) {
 }
 
 /**
- * Function: Checks if an account has existing transactions
- * @param {string} address - The Ethereum address to check
- * @returns {Promise<boolean>} - Returns true if transactions exist, false otherwise
+ * Checks if an account has existing transactions.
+ * @param {string} address - The Ethereum address to check.
+ * @returns {Promise<boolean>} - Returns true if transactions exist, false otherwise.
  */
 async function hasTransactions(address) {
   if (!provider) {
@@ -89,8 +85,8 @@ async function hasTransactions(address) {
   }
 
   try {
-    const nonce = await provider.getTransactionCount(address); // Step 1: Get transaction count (nonce)
-    return nonce > 0; // Step 2: Return true if nonce > 0
+    const nonce = await provider.getTransactionCount(address);
+    return nonce > 0;
   } catch (error) {
     console.error("Error checking transactions:", error);
     return false;
@@ -98,9 +94,9 @@ async function hasTransactions(address) {
 }
 
 /**
- * Function: Retrieves balance of an account
- * @param {string} address - The Ethereum address to check
- * @returns {Promise<string>} - Returns the balance in Wei
+ * Retrieves balance of an account.
+ * @param {string} address - The Ethereum address to check.
+ * @returns {Promise<string>} - Returns the balance in Wei.
  */
 async function getAccountBalance(address) {
   if (!provider) {
@@ -111,7 +107,7 @@ async function getAccountBalance(address) {
   }
 
   try {
-    const balance = await provider.getBalance(address); // Step 1: Fetch balance
+    const balance = await provider.getBalance(address);
     console.log(
       "Account balance for",
       address,
@@ -127,46 +123,42 @@ async function getAccountBalance(address) {
 }
 
 /**
- * Function: Validates Ethereum address format
- * @param {string} address - The Ethereum address to validate
- * @returns {boolean} - Returns true if valid, false otherwise
+ * Validates Ethereum address format.
+ * @param {string} address - The Ethereum address to validate.
+ * @returns {boolean} - Returns true if valid, false otherwise.
  */
 function isEOAValid(address) {
-  const isValid = ethers.utils.isAddress(address); // Step 1: Validate address format
+  const isValid = ethers.utils.isAddress(address);
   console.log("Address", address, "is valid:", isValid);
   return isValid;
 }
 
 /**
- * Function: Performs a batch transfer
- * @param {object} contract - The contract instance to use for the transfer
- * @param {array} recipients - Array of recipient addresses
- * @param {array} amounts - Array of amounts to transfer
- * @returns {Promise<object>} - Returns the transaction receipt
+ * Performs a batch transfer.
+ * @param {object} contract - The contract instance to use for the transfer.
+ * @param {string} tokenAddress - The address of the token to transfer (use AddressZero for ETH).
+ * @param {array} recipients - Array of recipient addresses.
+ * @param {array} amounts - Array of amounts to transfer.
+ * @returns {Promise<object>} - Returns the transaction receipt.
  */
-async function batchTransferAdmin(contract, recipients, amounts) {
+async function batchTransferAdmin(contract, tokenAddress, recipients, amounts) {
   const totalAmount = amounts.reduce(
     (acc, amount) => acc.add(amount),
     ethers.BigNumber.from(0)
   );
 
-  const tx = await contract.batchTransfer(
-    ethers.constants.AddressZero,
-    recipients,
-    amounts,
-    {
-      value: totalAmount,
-    }
-  );
+  const tx = await contract.batchTransfer(tokenAddress, recipients, amounts, {
+    value: tokenAddress === ethers.constants.AddressZero ? totalAmount : 0,
+  });
 
   return tx;
 }
 
 /**
- * Function: Saves wallet list into a CSV file
- * @param {array} wallets - Array of wallet objects to save
- * @param {string} fileName - The name of the CSV file to create
- * @returns {Promise<void>} - Resolves when the file is successfully written
+ * Saves wallet list into a CSV file.
+ * @param {array} wallets - Array of wallet objects to save.
+ * @param {string} fileName - The name of the CSV file to create.
+ * @returns {Promise<void>} - Resolves when the file is successfully written.
  */
 function saveWalletsToCSV(wallets, fileName) {
   return new Promise((resolve, reject) => {
@@ -183,7 +175,7 @@ function saveWalletsToCSV(wallets, fileName) {
 }
 
 // Exporting core functions for external use
-const core = {
+module.exports = {
   createRandomWallet,
   createCleanWallet,
   hasTransactions,
@@ -193,5 +185,3 @@ const core = {
   batchTransferAdmin,
   saveWalletsToCSV,
 };
-
-module.exports = core;
