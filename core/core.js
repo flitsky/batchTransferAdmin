@@ -21,7 +21,7 @@ function initProvider(network) {
     if (network) {
       provider = new ethers.providers.JsonRpcProvider(network);
     } else {
-      provider = ethers.provider;
+      provider = ethers.provider; // 하드햇의 기본 프로바이더 사용
     }
     console.log(
       "Provider initialized for network:",
@@ -34,7 +34,7 @@ function initProvider(network) {
       ". Falling back to default provider.",
       error
     );
-    provider = ethers.provider;
+    provider = ethers.provider; // 기본 프로바이더로 fallback
   }
 }
 

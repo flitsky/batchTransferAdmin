@@ -26,5 +26,4 @@ const hardhatConfig = {
     },
   },
 };
-
 module.exports = hardhatConfig;

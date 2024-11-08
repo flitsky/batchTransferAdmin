@@ -1,5 +1,7 @@
 {
   "scripts": {
+    "diff": "git diff --cached > diff.log",
+    "compile": "npx hardhat compile",
     "test:contracts": "npx hardhat test ./contracts/batchTransferAdmin.test.js",
     "test:core": "npx hardhat test ./core/core.test.js",
     "test:integration": "npx hardhat test ./test/integration/integration.test.js --network amoy",
