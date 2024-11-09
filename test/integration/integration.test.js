@@ -1,7 +1,6 @@
 // Import necessary modules
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const moduleConf = require("../../config/config.js");
 const csv = require("fast-csv");
 const fs = require("fs");
 const core = require("../../core/core.js");
@@ -23,7 +22,7 @@ describe("Wallet Token Transfer State Transition Tests", function () {
 
   before(async function () {
     [adminWallet, admin1, admin2, nonAdmin] = await connectWallets(
-      moduleConf.accounts
+      networks.amoy.accounts
     );
 
     // Attach to the already deployed BatchTransferAdmin contract
