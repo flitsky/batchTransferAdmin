@@ -1,9 +1,9 @@
 // Import necessary modules
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
+const { networks } = require("../../hardhat.config.js");
 const core = require("../../core/core.js");
 const { initProvider } = require("../../core/provider.js");
-const { networks } = require("../../hardhat.config.js");
 const {
   loadWalletsFromCSV,
   performBatchTransfer,
@@ -68,67 +68,6 @@ describe("Wallet Token Transfer State Transition Tests", function () {
       "https://amoy.polygonscan.com/address/0xCd3b0FE58cC79152935e77a8E9e43742dc548B1C"
     );
   });
-
-  async function performBatchTransferInTest(loadedWallets) {
-    if (!loadedWallets || loadedWallets.length === 0) {
-      throw new Error("No wallets loaded from CSV");
-    }
-
-    expect(loadedWallets.length).to.equal(5);
-    console.log("Loaded Wallets: ", loadedWallets);
-
-    const recipients = loadedWallets.map((wallet) => wallet.address);
-    const amounts = Array(loadedWallets.length).fill(
-      ethers.utils.parseEther("0.000123")
-    );
-
-    if (recipients.length !== amounts.length) {
-      throw new Error(
-        "Recipients and amounts arrays must have the same length"
-      );
-    }
-
-    const adminWalletBalanceBefore = await ethers.provider.getBalance(
-      adminWallet.address
-    );
-    const balancesBefore = await Promise.all(
-      recipients.map((address) => ethers.provider.getBalance(address))
-    );
-
-    const tx = await core.batchTransferAdmin(
-      batchTransferAdminContract,
-      ethers.constants.AddressZero,
-      recipients,
-      amounts
-    );
-    const receipt = await tx.wait(3);
-
-    expect(receipt.status).to.equal(1, "Transaction failed");
-
-    const adminWalletBalanceAfter = await ethers.provider.getBalance(
-      adminWallet.address
-    );
-    const balancesAfter = await Promise.all(
-      recipients.map((address) => ethers.provider.getBalance(address))
-    );
-
-    for (let i = 0; i < recipients.length; i++) {
-      const balanceChange = balancesAfter[i].sub(balancesBefore[i]);
-      if (balanceChange.toString() !== amounts[i].toString()) {
-        throw new Error(`Balance mismatch for recipient ${recipients[i]}`);
-      }
-    }
-
-    const totalAmountSent = amounts.reduce(
-      (acc, amount) => acc.add(amount),
-      ethers.BigNumber.from(0)
-    );
-    const expectedBalanceAfter = adminWalletBalanceBefore.sub(totalAmountSent);
-
-    expect(adminWalletBalanceAfter.lt(expectedBalanceAfter)).to.be.true;
-
-    return receipt;
-  }
 });
 
 // Helper function to connect wallets
