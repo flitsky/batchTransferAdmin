@@ -1,8 +1,11 @@
 # Add these lines to .gitignore
+artifacts/
+node_modules/
+cache/
 .env
 .env.local
 .env.*.local
-node_modules/
-artifacts/
+
 diff.log
-cleanWalletList.csv
+walletCreateTest.csv
+walletList.csv

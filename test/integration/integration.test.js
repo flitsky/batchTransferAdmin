@@ -1,19 +1,17 @@
 // Import necessary modules
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const csv = require("fast-csv");
-const fs = require("fs");
 const core = require("../../core/core.js");
+const { initProvider } = require("../../core/provider.js");
 const { networks } = require("../../hardhat.config.js");
+const {
+  loadWalletsFromCSV,
+  performBatchTransfer,
+} = require("../../core/utils.js");
 
-// Helper function to connect wallets
-async function connectWallets(privateKeys) {
-  return Promise.all(
-    privateKeys.map((privateKey) =>
-      new ethers.Wallet(privateKey, ethers.provider).connect(ethers.provider)
-    )
-  );
-}
+// Define the CSV file paths as constants
+const WALLET_LIST_CSV = "walletList.csv";
+const WALLET_CREATE_TEST_CSV = "walletCreateTest.csv";
 
 // State Transition Test Suite for Wallet Token Transfers
 describe("Wallet Token Transfer State Transition Tests", function () {
@@ -34,10 +32,11 @@ describe("Wallet Token Transfer State Transition Tests", function () {
     batchTransferAdminContract = await BatchTransferAdminFactory.attach(
       deployedContractAddress
     );
+    initProvider();
   });
 
   // Step 1 & 2: Create Clean Wallet List and Save into CSV File
-  it.skip("Should create a list of clean wallets and save them into cleanWalletList.csv", async function () {
+  it("Should create a list of clean wallets and save them into a CSV file", async function () {
     for (let i = 0; i < 5; i++) {
       const wallet = await core.createCleanWallet();
       cleanWallets.push({
@@ -48,33 +47,29 @@ describe("Wallet Token Transfer State Transition Tests", function () {
     expect(cleanWallets.length).to.equal(5);
     console.log("Created Wallets: ", cleanWallets);
 
-    // Save Wallet List into CSV File
-    await core.saveWalletsToCSV(cleanWallets, "cleanWalletList.csv");
+    // Save Wallet List into the appropriate CSV File
+    await core.saveWalletsToCSV(cleanWallets, WALLET_CREATE_TEST_CSV);
   });
 
   // Step 3 & 4: Load Wallet List and Send Coin/Token for Testing
   it.only("Should load wallet list from CSV and send minimum coin and token to each wallet", async function () {
-    return new Promise((resolve, reject) => {
-      const loadedWallets = [];
-      fs.createReadStream("cleanWalletList.csv")
-        .pipe(csv.parse({ headers: true }))
-        .on("data", (row) => loadedWallets.push(row))
-        .on("end", async () => {
-          try {
-            await performBatchTransfer(loadedWallets);
-            resolve();
-          } catch (error) {
-            reject(error);
-          }
-        })
-        .on("error", (error) => reject(error));
-    });
+    const loadedWallets = await loadWalletsFromCSV(WALLET_LIST_CSV);
+    expect(loadedWallets.length).to.equal(5);
+    console.log("Loaded Wallets: ", loadedWallets);
+
+    // Perform batch transfer using the helper function
+    const receipt = await performBatchTransfer(
+      loadedWallets,
+      batchTransferAdminContract,
+      adminWallet
+    );
+    expect(receipt.status).to.equal(1, "Transaction failed");
     console.log(
       "https://amoy.polygonscan.com/address/0xCd3b0FE58cC79152935e77a8E9e43742dc548B1C"
     );
   });
 
-  async function performBatchTransfer(loadedWallets) {
+  async function performBatchTransferInTest(loadedWallets) {
     if (!loadedWallets || loadedWallets.length === 0) {
       throw new Error("No wallets loaded from CSV");
     }
@@ -135,3 +130,12 @@ describe("Wallet Token Transfer State Transition Tests", function () {
     return receipt;
   }
 });
+
+// Helper function to connect wallets
+async function connectWallets(privateKeys) {
+  return Promise.all(
+    privateKeys.map((privateKey) =>
+      new ethers.Wallet(privateKey, ethers.provider).connect(ethers.provider)
+    )
+  );
+}
