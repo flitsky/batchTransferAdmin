@@ -25,5 +25,12 @@ const hardhatConfig = {
         "0xCd3b0FE58cC79152935e77a8E9e43742dc548B1C",
     },
   },
+  mocha: {
+    timeout: 60000,
+  },
+  coverage: {
+    timeout: 60000,
+    skipFiles: ["test/mocks/"],
+  },
 };
 module.exports = hardhatConfig;

@@ -1,7 +1,9 @@
 # Add these lines to .gitignore
 artifacts/
-node_modules/
 cache/
+coverage/
+node_modules/
+
 .env
 .env.local
 .env.*.local

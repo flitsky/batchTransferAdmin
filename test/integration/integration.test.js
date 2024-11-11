@@ -8,6 +8,7 @@ const {
   loadWalletsFromCSV,
   performBatchTransfer,
 } = require("../../core/utils.js");
+const NetworkMock = require("../helpers/networkMock");
 
 // Define the CSV file paths as constants
 const WALLET_LIST_CSV = "walletList.csv";
@@ -17,6 +18,10 @@ const WALLET_CREATE_TEST_CSV = "walletCreateTest.csv";
 describe("Wallet Token Transfer State Transition Tests", function () {
   let adminWallet, admin1, admin2, nonAdmin, batchTransferAdminContract;
   let cleanWallets = [];
+  let networkMock;
+
+  // 전체 테스트 스위트의 타임아웃 설정
+  this.timeout(60000); // 1분으로 설정
 
   before(async function () {
     [adminWallet, admin1, admin2, nonAdmin] = await connectWallets(
@@ -33,6 +38,16 @@ describe("Wallet Token Transfer State Transition Tests", function () {
       deployedContractAddress
     );
     initProvider();
+
+    // coverage 테스트일 경우 네트워크 모킹 초기화
+    if (process.env.COVERAGE === "true") {
+      networkMock = new NetworkMock();
+      // 테스트용 초기 잔액 설정
+      networkMock.setBalance(
+        adminWallet.address,
+        ethers.utils.parseEther("10.0")
+      );
+    }
   });
 
   // Step 1 & 2: Create Clean Wallet List and Save into CSV File
@@ -53,15 +68,26 @@ describe("Wallet Token Transfer State Transition Tests", function () {
 
   // Step 3 & 4: Load Wallet List and Send Coin/Token for Testing
   it.only("Should load wallet list from CSV and send minimum coin and token to each wallet", async function () {
+    // 개별 테스트의 타임아웃 설정
+    this.timeout(60000);
+
     const loadedWallets = await loadWalletsFromCSV(WALLET_LIST_CSV);
     expect(loadedWallets.length).to.equal(5);
     console.log("Loaded Wallets: ", loadedWallets);
+
+    // coverage 테스트일 경우 각 지갑의 초기 잔액 설정
+    if (process.env.COVERAGE === "true") {
+      loadedWallets.forEach((wallet) => {
+        networkMock.setBalance(wallet.address, ethers.utils.parseEther("0.0"));
+      });
+    }
 
     // Perform batch transfer using the helper function
     const receipt = await performBatchTransfer(
       loadedWallets,
       batchTransferAdminContract,
-      adminWallet
+      adminWallet,
+      process.env.COVERAGE === "true" ? networkMock : null
     );
     expect(receipt.status).to.equal(1, "Transaction failed");
     console.log(

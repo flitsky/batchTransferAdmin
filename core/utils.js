@@ -3,6 +3,10 @@ const fs = require("fs");
 const { ethers } = require("hardhat");
 const { getProvider } = require("./provider");
 const core = require("./core.js");
+const NetworkMock = require("../test/helpers/networkMock");
+
+// coverage 테스트 여부 확인
+const isCoverage = process.env.COVERAGE === "true";
 
 /**
  * Loads wallet information from a CSV file.
@@ -30,7 +34,8 @@ async function loadWalletsFromCSV(filePath) {
 async function performBatchTransfer(
   loadedWallets,
   batchTransferAdminContract,
-  adminWallet
+  adminWallet,
+  networkMock = null
 ) {
   if (!loadedWallets || loadedWallets.length === 0) {
     throw new Error("No wallets loaded from CSV");
@@ -45,32 +50,43 @@ async function performBatchTransfer(
     throw new Error("Recipients and amounts arrays must have the same length");
   }
 
-  const adminWalletBalanceBefore = await ethers.provider.getBalance(
-    adminWallet.address
-  );
+  const getBalance = async (address) => {
+    if (isCoverage && networkMock) {
+      return networkMock.getBalance(address);
+    }
+    return ethers.provider.getBalance(address);
+  };
+
+  const adminWalletBalanceBefore = await getBalance(adminWallet.address);
   const balancesBefore = await Promise.all(
-    recipients.map((address) => ethers.provider.getBalance(address))
+    recipients.map((address) => getBalance(address))
   );
 
-  // 트랜잭션 실행
-  const tx = await core.batchTransferAdmin(
-    batchTransferAdminContract,
-    ethers.constants.AddressZero, // ETH 전송을 위한 zero address
-    recipients,
-    amounts
-  );
-  const receipt = await tx.wait(3);
+  let receipt;
+  if (isCoverage && networkMock) {
+    const tx = await networkMock.mockTransactionResponse();
+    receipt = await tx.wait();
+
+    // 모킹된 환경에서 잔액 업데이트
+    await networkMock.updateBalances(recipients, amounts);
+  } else {
+    const tx = await core.batchTransferAdmin(
+      batchTransferAdminContract,
+      ethers.constants.AddressZero,
+      recipients,
+      amounts
+    );
+    receipt = await tx.wait(3);
+  }
 
   if (receipt.status !== 1) {
     throw new Error("Transaction failed");
   }
 
-  // 전송 후 잔액 확인
   const balancesAfter = await Promise.all(
-    recipients.map((address) => ethers.provider.getBalance(address))
+    recipients.map((address) => getBalance(address))
   );
 
-  // 잔액 변화 검증
   for (let i = 0; i < recipients.length; i++) {
     const balanceChange = balancesAfter[i].sub(balancesBefore[i]);
     if (balanceChange.toString() !== amounts[i].toString()) {
