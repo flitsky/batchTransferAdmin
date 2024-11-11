@@ -3,6 +3,7 @@ const { expect } = require("chai");
 const core = require("../core/core.js");
 const { ethers } = require("hardhat");
 const Web3 = require("web3");
+const NetworkMock = require("../test/helpers/networkMock");
 
 /**
  * Test Suite for BatchTransferAdmin Contract
@@ -13,6 +14,7 @@ const Web3 = require("web3");
 describe("BatchTransferAdmin", function () {
   // Declare variables to be used across tests
   let owner, admin1, admin2, nonAdmin, contract, token;
+  let networkMock;
 
   // Before each test, deploy the contracts and set up initial state
   beforeEach(async function () {
@@ -37,6 +39,13 @@ describe("BatchTransferAdmin", function () {
 
     // Step 4: Transfer tokens to the contract
     await token.transfer(contract.address, ethers.utils.parseEther("10000"));
+
+    if (process.env.COVERAGE === "true") {
+      // 테스트용 초기 잔액 설정
+      networkMock.setBalance(owner.address, ethers.utils.parseEther("10.0"));
+      networkMock.setBalance(admin1.address, ethers.utils.parseEther("1.0"));
+      networkMock.setBalance(admin2.address, ethers.utils.parseEther("1.0"));
+    }
   });
 
   // Admin management test cases

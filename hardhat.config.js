@@ -30,7 +30,24 @@ const hardhatConfig = {
   },
   coverage: {
     timeout: 60000,
-    skipFiles: ["test/mocks/"],
+    skipFiles: [],
+    include: [
+      "contracts/**/*.sol", // 컨트랙트 파일
+    ],
+    exclude: [
+      "contracts/test/**/*.sol", // 테스트용 컨트랙트 제외
+    ],
+    testfiles: [
+      "./contracts/**/*.test.js", // 컨트랙트 테스트
+      "./core/**/*.test.js", // 코어 로직 테스트
+      "./test/**/*.test.js", // 통합/E2E 테스트
+    ],
+    mocha: {
+      timeout: 60000,
+    },
+  },
+  paths: {
+    tests: "./test",
   },
 };
 module.exports = hardhatConfig;

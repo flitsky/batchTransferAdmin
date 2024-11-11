@@ -11,11 +11,11 @@
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.2.3",
     "chai": "^4.3.6",
+    "cross-env": "^7.0.3",
     "dotenv": "^16.4.5",
     "ethers": "^5.7.2",
     "hardhat": "^2.22.15",
-    "solidity-coverage": "^0.8.13",
-    "cross-env": "^7.0.3"
+    "solidity-coverage": "^0.8.13"
   },
   "dependencies": {
     "@nomiclabs/hardhat-etherscan": "^3.1.8",
