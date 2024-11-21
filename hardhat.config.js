@@ -23,6 +23,7 @@ const hardhatConfig = {
       ],
       deployed_batch_transfer_address:
         "0xCd3b0FE58cC79152935e77a8E9e43742dc548B1C",
+      deployed_mock_erc20_address: "0x250A2573BaBb67Da3318696Bb572244F39d5FB90",
     },
   },
   mocha: {
@@ -49,5 +50,6 @@ const hardhatConfig = {
   paths: {
     tests: "./test",
   },
+  forceBuild: false,
 };
 module.exports = hardhatConfig;
