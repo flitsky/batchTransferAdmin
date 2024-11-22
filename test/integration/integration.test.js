@@ -42,6 +42,8 @@ describe("Wallet Token Transfer State Transition Tests", function () {
       networks.amoy.deployed_mock_erc20_address
     );
     initProvider();
+    const network = process.env.NETWORK || "testnet";
+    core.setGasOptions(network);
 
     if (process.env.COVERAGE === "true") {
       networkMock = new NetworkMock();
