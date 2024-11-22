@@ -51,7 +51,7 @@ describe("Wallet Token Transfer State Transition Tests", function () {
   });
 
   // Step 1 & 2: Create Clean Wallet List and Save into CSV File
-  it.skip("Should create a list of clean wallets and save them into a CSV file", async function () {
+  it("Should create a list of clean wallets and save them into a CSV file", async function () {
     for (let i = 0; i < TOTAL_WALLETS; i++) {
       const wallet = await core.createCleanWallet();
       cleanWallets.push({
@@ -103,7 +103,7 @@ describe("Wallet Token Transfer State Transition Tests", function () {
   });
 
   // Step 5 & 6: Individually control the wallets that receive asset transfers
-  it.skip("Should individually control the wallets that receive asset transfers", async function () {
+  it("Should individually control the wallets that receive asset transfers", async function () {
     this.timeout(60000);
 
     const loadedWallets = await loadWalletsFromCSV(WALLET_LIST_CSV);

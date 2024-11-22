@@ -10,6 +10,11 @@ const fs = require("fs");
 
 let provider = ethers.provider; // Default to Hardhat's provider
 
+let gasOptions = {
+  gasLimit: ethers.BigNumber.from(300000),
+  gasPrice: ethers.utils.parseUnits("50", "gwei"),
+};
+
 /**
  * Initializes the provider.
  * @param {string} network - The name of the network (e.g., 'localhost', 'mainnet').
@@ -180,6 +185,24 @@ function saveWalletsToCSV(wallets, fileName) {
   });
 }
 
+/**
+ * Sets the gas options based on the network.
+ * @param {string} network - The name of the network (e.g., 'mainnet', 'testnet').
+ */
+function setGasOptions(network) {
+  if (network === "mainnet") {
+    gasOptions = {
+      gasLimit: ethers.BigNumber.from(500000),
+      gasPrice: ethers.utils.parseUnits("100", "gwei"),
+    };
+  } else {
+    gasOptions = {
+      gasLimit: ethers.BigNumber.from(300000),
+      gasPrice: ethers.utils.parseUnits("50", "gwei"),
+    };
+  }
+}
+
 // Exporting core functions for external use
 module.exports = {
   createRandomWallet,
@@ -190,4 +213,6 @@ module.exports = {
   initProvider,
   batchTransferAdmin,
   saveWalletsToCSV,
+  setGasOptions,
+  getGasOptions: () => gasOptions,
 };
