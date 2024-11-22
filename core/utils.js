@@ -123,7 +123,35 @@ async function performBatchTransfer(
   return receipt;
 }
 
+// Helper function to connect wallets
+async function connectWallets(privateKeys) {
+  return Promise.all(
+    privateKeys.map((privateKey) =>
+      new ethers.Wallet(privateKey, ethers.provider).connect(ethers.provider)
+    )
+  );
+}
+
+// Helper function to attach to a deployed contract
+async function attachContract(contractName, address) {
+  const ContractFactory = await ethers.getContractFactory(contractName);
+  return ContractFactory.attach(address);
+}
+
+// Helper function to create random wallets
+async function createRandomWallets(count) {
+  const wallets = [];
+  for (let i = 0; i < count; i++) {
+    const wallet = await core.createRandomWallet();
+    wallets.push({ address: wallet.address, privateKey: wallet.privateKey });
+  }
+  return wallets;
+}
+
 module.exports = {
   loadWalletsFromCSV,
   performBatchTransfer,
+  connectWallets,
+  attachContract,
+  createRandomWallets,
 };

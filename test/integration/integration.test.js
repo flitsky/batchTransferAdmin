@@ -7,13 +7,16 @@ const { initProvider } = require("../../core/provider.js");
 const {
   loadWalletsFromCSV,
   performBatchTransfer,
+  connectWallets,
+  attachContract,
+  createRandomWallets,
 } = require("../../core/utils.js");
 const NetworkMock = require("../helpers/networkMock");
 
 // Define constants
 const WALLET_LIST_CSV = "walletList.csv";
 const WALLET_CREATE_TEST_CSV = "walletCreateTest.csv";
-const TOTAL_WALLETS = 5;
+const TOTAL_WALLETS = 10;
 
 // Test Suite for Wallet Token Transfers
 describe("Wallet Token Transfer State Transition Tests", function () {
@@ -111,7 +114,7 @@ describe("Wallet Token Transfer State Transition Tests", function () {
         console.log(
           `Balance of ${wallet.address}: ${ethers.utils.formatEther(
             balance
-          )} ETH`
+          )} POL`
         );
         return {
           address: wallet.address,
@@ -126,28 +129,3 @@ describe("Wallet Token Transfer State Transition Tests", function () {
     });
   });
 });
-
-// Helper function to connect wallets
-async function connectWallets(privateKeys) {
-  return Promise.all(
-    privateKeys.map((privateKey) =>
-      new ethers.Wallet(privateKey, ethers.provider).connect(ethers.provider)
-    )
-  );
-}
-
-// Helper function to attach to a deployed contract
-async function attachContract(contractName, address) {
-  const ContractFactory = await ethers.getContractFactory(contractName);
-  return ContractFactory.attach(address);
-}
-
-// Helper function to create random wallets
-async function createRandomWallets(count) {
-  const wallets = [];
-  for (let i = 0; i < count; i++) {
-    const wallet = await core.createRandomWallet();
-    wallets.push({ address: wallet.address, privateKey: wallet.privateKey });
-  }
-  return wallets;
-}
