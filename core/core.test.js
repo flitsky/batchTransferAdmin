@@ -81,7 +81,9 @@ describe("Core Module Unit Test", function () {
       contract,
       ethers.constants.AddressZero,
       recipients,
-      amounts
+      amounts,
+      owner,
+      core.getGasOptions()
     );
     expect(tx).to.have.property("wait");
   });

@@ -10,6 +10,11 @@ const fs = require("fs");
 
 let provider = ethers.provider; // Default to Hardhat's provider
 
+let gasOptions = {
+  gasLimit: ethers.BigNumber.from(300000),
+  gasPrice: ethers.utils.parseUnits("50", "gwei"),
+};
+
 /**
  * Initializes the provider.
  * @param {string} network - The name of the network (e.g., 'localhost', 'mainnet').
@@ -20,14 +25,11 @@ function initProvider(network) {
       ? new ethers.providers.JsonRpcProvider(network)
       : ethers.provider;
     console.log(
-      "Provider initialized for network:",
-      network || "default Hardhat provider"
+      `Provider initialized for network: ${network} || "default Hardhat provider"`
     );
   } catch (error) {
     console.error(
-      "Error initializing provider with network",
-      network,
-      ". Falling back to default provider.",
+      `Error initializing provider with network ${network}. Falling back to default provider.`,
       error
     );
     provider = ethers.provider;
@@ -41,10 +43,10 @@ function initProvider(network) {
 async function createRandomWallet() {
   try {
     const wallet = ethers.Wallet.createRandom();
-    console.log("New account created:", wallet.address);
+    console.log(`New account created: ${wallet.address}`);
     return wallet;
   } catch (error) {
-    console.error("Error creating account:", error);
+    console.error(`Error creating account:`, error);
     throw error;
   }
 }
@@ -79,7 +81,7 @@ async function createCleanWallet(maxRetries = 3) {
 async function hasTransactions(address) {
   if (!provider) {
     console.warn(
-      "Warning: Provider is not initialized. Please call initProvider() first."
+      `Warning: Provider is not initialized. Please call initProvider() first.`
     );
     return false;
   }
@@ -88,7 +90,7 @@ async function hasTransactions(address) {
     const nonce = await provider.getTransactionCount(address);
     return nonce > 0;
   } catch (error) {
-    console.error("Error checking transactions:", error);
+    console.error(`Error checking transactions for ${address}:`, error);
     return false;
   }
 }
@@ -101,23 +103,18 @@ async function hasTransactions(address) {
 async function getAccountBalance(address) {
   if (!provider) {
     console.warn(
-      "Warning: Provider is not initialized. Please call initProvider() first."
+      `Warning: Provider is not initialized. Please call initProvider() first.`
     );
     return null;
   }
 
   try {
     const balance = await provider.getBalance(address);
-    console.log(
-      "Account balance for",
-      address,
-      "is",
-      balance.toString(),
-      "Wei"
-    );
+    const balanceInEther = ethers.utils.formatEther(balance);
+    console.log(`Account balance for ${address} is ${balanceInEther} Ether`);
     return balance.toString();
   } catch (error) {
-    console.error("Error fetching balance:", error);
+    console.error(`Error fetching balance for ${address}:`, error);
     throw error;
   }
 }
@@ -129,7 +126,7 @@ async function getAccountBalance(address) {
  */
 function isEOAValid(address) {
   const isValid = ethers.utils.isAddress(address);
-  console.log("Address", address, "is valid:", isValid);
+  console.log(`Address ${address} is valid: ${isValid}`);
   return isValid;
 }
 
@@ -139,16 +136,30 @@ function isEOAValid(address) {
  * @param {string} tokenAddress - The address of the token to transfer (use AddressZero for ETH).
  * @param {array} recipients - Array of recipient addresses.
  * @param {array} amounts - Array of amounts to transfer.
+ * @param {object} adminWallet - The wallet object of the admin.
+ * @param {object} options - Additional options for the transfer.
  * @returns {Promise<object>} - Returns the transaction receipt.
  */
-async function batchTransferAdmin(contract, tokenAddress, recipients, amounts) {
+async function batchTransferAdmin(
+  contract,
+  tokenAddress,
+  recipients,
+  amounts,
+  adminWallet,
+  options = {}
+) {
   const totalAmount = amounts.reduce(
     (acc, amount) => acc.add(amount),
     ethers.BigNumber.from(0)
   );
 
+  const { gasLimit, gasPrice } = options;
+
   const tx = await contract.batchTransfer(tokenAddress, recipients, amounts, {
+    from: adminWallet.address,
     value: tokenAddress === ethers.constants.AddressZero ? totalAmount : 0,
+    gasLimit: gasLimit || 300000,
+    gasPrice: gasPrice || ethers.utils.parseUnits("50", "gwei"),
   });
 
   return tx;
@@ -174,6 +185,24 @@ function saveWalletsToCSV(wallets, fileName) {
   });
 }
 
+/**
+ * Sets the gas options based on the network.
+ * @param {string} network - The name of the network (e.g., 'mainnet', 'testnet').
+ */
+function setGasOptions(network) {
+  if (network === "mainnet") {
+    gasOptions = {
+      gasLimit: ethers.BigNumber.from(500000),
+      gasPrice: ethers.utils.parseUnits("100", "gwei"),
+    };
+  } else {
+    gasOptions = {
+      gasLimit: ethers.BigNumber.from(300000),
+      gasPrice: ethers.utils.parseUnits("50", "gwei"),
+    };
+  }
+}
+
 // Exporting core functions for external use
 module.exports = {
   createRandomWallet,
@@ -184,4 +213,6 @@ module.exports = {
   initProvider,
   batchTransferAdmin,
   saveWalletsToCSV,
+  setGasOptions,
+  getGasOptions: () => gasOptions,
 };
