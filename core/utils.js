@@ -103,7 +103,7 @@ async function performBatchTransfer(
       tokenAddress,
       recipients,
       amounts,
-      adminWallet.address,
+      adminWallet,
       {
         nonce: nonce, // 현재 nonce 값 사용
         gasLimit: 300000,

@@ -136,7 +136,7 @@ function isEOAValid(address) {
  * @param {string} tokenAddress - The address of the token to transfer (use AddressZero for ETH).
  * @param {array} recipients - Array of recipient addresses.
  * @param {array} amounts - Array of amounts to transfer.
- * @param {string} adminAddress - The address of the admin.
+ * @param {object} adminWallet - The wallet object of the admin.
  * @param {object} options - Additional options for the transfer.
  * @returns {Promise<object>} - Returns the transaction receipt.
  */
@@ -145,7 +145,7 @@ async function batchTransferAdmin(
   tokenAddress,
   recipients,
   amounts,
-  adminAddress,
+  adminWallet,
   options = {}
 ) {
   const totalAmount = amounts.reduce(
@@ -156,7 +156,7 @@ async function batchTransferAdmin(
   const { gasLimit, gasPrice } = options;
 
   const tx = await contract.batchTransfer(tokenAddress, recipients, amounts, {
-    from: adminAddress,
+    from: adminWallet.address,
     value: tokenAddress === ethers.constants.AddressZero ? totalAmount : 0,
     gasLimit: gasLimit || 300000,
     gasPrice: gasPrice || ethers.utils.parseUnits("50", "gwei"),
