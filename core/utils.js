@@ -9,17 +9,17 @@ const NetworkMock = require("../test/helpers/networkMock");
 const isCoverage = process.env.COVERAGE === "true";
 
 /**
- * Loads wallet information from a CSV file.
+ * Reads data from a CSV file.
  * @param {string} filePath - The path to the CSV file.
- * @returns {Promise<Array>} - A promise that resolves to an array of wallet objects.
+ * @returns {Promise<Array>} - A promise that resolves to an array of objects representing the CSV rows.
  */
-async function loadWalletsFromCSV(filePath) {
+async function readCSVFile(filePath) {
   return new Promise((resolve, reject) => {
-    const wallets = [];
+    const data = [];
     fs.createReadStream(filePath)
       .pipe(csv.parse({ headers: true }))
-      .on("data", (row) => wallets.push(row))
-      .on("end", () => resolve(wallets))
+      .on("data", (row) => data.push(row))
+      .on("end", () => resolve(data))
       .on("error", reject);
   });
 }
@@ -149,7 +149,7 @@ async function createRandomWallets(count) {
 }
 
 module.exports = {
-  loadWalletsFromCSV,
+  readCSVFile,
   performBatchTransfer,
   connectWallets,
   attachContract,
