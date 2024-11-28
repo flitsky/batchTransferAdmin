@@ -12,6 +12,12 @@ const {
   createRandomWallets,
 } = require("../../core/utils.js");
 const NetworkMock = require("../helpers/networkMock");
+const {
+  readWalletsFromCSV,
+  getWalletMapSize,
+  getWalletMap,
+  getWalletFromAddress,
+} = require("../../core/wallet.js");
 
 // Define constants
 const TOTAL_WALLETS = 10;
@@ -73,13 +79,13 @@ describe("Wallet Token Transfer State Transition Tests", function () {
 
     const { recipients, amounts } = csvData.reduce(
       (acc, row, index) => {
-        if (!row || typeof row.toEOA !== "string") {
+        if (!row || typeof row.toAddress !== "string") {
           throw new Error(
-            `Missing or invalid "toEOA" field in row ${index + 1}`
+            `Missing or invalid "toAddress" field in row ${index + 1}`
           );
         }
 
-        const address = row.toEOA;
+        const address = row.toAddress;
         if (!ethers.utils.isAddress(address)) {
           throw new Error(
             `Invalid address detected in row ${index + 1}: ${address}`
@@ -124,7 +130,7 @@ describe("Wallet Token Transfer State Transition Tests", function () {
     // Promise.all과 map을 사용하여 비동기 작업 처리
     const balanceChecks = await Promise.all(
       csvData.map(async (row) => {
-        const addr = row.toEOA;
+        const addr = row.toAddress;
         const expectedAmount = ethers.utils.parseEther(row.amount.toString());
         const bal = await ethers.provider.getBalance(addr);
         console.log(`Balance of ${addr}: ${ethers.utils.formatEther(bal)} POL`);
@@ -139,5 +145,67 @@ describe("Wallet Token Transfer State Transition Tests", function () {
     balanceChecks.forEach(({ address, balance, expectedAmount }) => {
       expect(balance.gte(expectedAmount)).to.be.true;
     });
+  });
+
+  it("Should load wallet list from CSV and validate each wallet", async function () {
+    this.timeout(30000);
+
+    await readWalletsFromCSV(WALLET_LIST_CSV);
+
+    const totalWallets = getWalletMapSize();
+    expect(totalWallets).to.be.greaterThan(0, "No wallets loaded from CSV");
+
+    const walletMap = getWalletMap();
+
+    walletMap.forEach((wallet, address) => {
+      // Check if wallet object is created
+      expect(wallet).to.be.an.instanceof(ethers.Wallet);
+    });
+
+    console.log(
+      `Wallet Object results (${totalWallets}) from CSV and only valid are loaded.`
+    );
+  });
+
+  it("Should retrieve wallet object from address", async function () {
+    this.timeout(30000);
+
+    await readWalletsFromCSV(WALLET_LIST_CSV);
+
+    const walletMap = getWalletMap();
+    const addresses = Array.from(walletMap.keys());
+    const totalWallets = addresses.length; // Get the total number of wallets
+
+    addresses.forEach((address) => {
+      const wallet = getWalletFromAddress(address);
+      expect(wallet).to.be.an.instanceof(ethers.Wallet);
+      expect(wallet.address.toLowerCase()).to.equal(address.toLowerCase());
+    });
+
+    console.log(
+      `All wallet objects (${totalWallets}) retrieved successfully from addresses.`
+    );
+  });
+
+  it("Should verify that all 'from' addresses in transferCoinBatchList exist in walletList", async function () {
+    this.timeout(30000);
+
+    await readWalletsFromCSV(WALLET_LIST_CSV);
+
+    const walletMap = getWalletMap();
+    const csvData = await readCSVFile(TRANSFER_COIN_BATCH_LIST_CSV);
+
+    csvData.forEach((row, index) => {
+      const fromAddress = row.fromAddress;
+      const wallet = getWalletFromAddress(fromAddress);
+      expect(
+        wallet,
+        `Address not found in walletList: ${fromAddress} at row ${index + 1}`
+      ).to.not.be.null;
+    });
+
+    console.log(
+      "All 'from' addresses in transferCoinBatchList exist in walletList."
+    );
   });
 });
