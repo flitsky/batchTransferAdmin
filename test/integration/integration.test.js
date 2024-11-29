@@ -71,7 +71,7 @@ describe("Wallet Token Transfer State Transition Tests", function () {
     await core.saveWalletsToCSV(cleanWallets, WALLET_CREATE_TEST_CSV);
   });
 
-  it("Should load wallet list from CSV and send minimum coin and token to each wallet", async function () {
+  it("Should load wallet list from CSV and send minimum coin to each wallet", async function () {
     this.timeout(60000);
 
     const csvData = await readCSVFile(TRANSFER_COIN_BATCH_LIST_CSV);
@@ -108,6 +108,86 @@ describe("Wallet Token Transfer State Transition Tests", function () {
     const receipt = await performBatchTransfer(
       batchTransferAdminContract,
       ethers.constants.AddressZero,
+      recipients,
+      amounts,
+      adminWallet,
+      process.env.COVERAGE === "true" ? networkMock : null
+    );
+    console.timeEnd("batchTransfer");
+
+    expect(receipt.status).to.equal(1, "Transaction failed");
+    console.log(
+      "https://amoy.polygonscan.com/address/0xCd3b0FE58cC79152935e77a8E9e43742dc548B1C"
+    );
+  });
+
+  it.only("Should load wallet list from CSV and send minimum token to each wallet", async function () {
+    this.timeout(60000);
+
+    const csvData = await readCSVFile(TRANSFER_TOKEN_BATCH_LIST_CSV);
+    console.log(`Loaded CSV Data Length: ${csvData.length}`);
+
+    const { recipients, amounts } = csvData.reduce(
+      (acc, row, index) => {
+        if (!row || typeof row.toAddress !== "string") {
+          throw new Error(
+            `Missing or invalid "toAddress" field in row ${index + 1}`
+          );
+        }
+
+        const address = row.toAddress;
+        if (!ethers.utils.isAddress(address)) {
+          throw new Error(
+            `Invalid address detected in row ${index + 1}: ${address}`
+          );
+        }
+
+        if (!row.amount) {
+          throw new Error(`Missing "amount" field in row ${index + 1}`);
+        }
+
+        acc.recipients.push(address);
+        acc.amounts.push(ethers.utils.parseEther(row.amount.toString()));
+        return acc;
+      },
+      { recipients: [], amounts: [] }
+    );
+
+    console.log(`Recipients: ${recipients}`);
+    console.log(`Amounts: ${amounts}`);
+    console.log(`MockERC20 Contract Address: ${mockERC20Contract.address}`);
+
+    // Calculate total amount to be transferred
+    const totalAmount = amounts.reduce(
+      (acc, amount) => acc.add(amount),
+      ethers.BigNumber.from(0)
+    );
+
+    // Check current allowance
+    const currentAllowance = await mockERC20Contract.allowance(
+      adminWallet.address,
+      batchTransferAdminContract.address
+    );
+
+    if (currentAllowance.lt(totalAmount)) {
+      // Approve the batchTransferAdminContract to spend tokens on behalf of adminWallet
+      const approveTx = await mockERC20Contract
+        .connect(adminWallet)
+        .approve(batchTransferAdminContract.address, totalAmount);
+      console.log(`Approve Transaction: ${approveTx.hash}`);
+      console.time("approve");
+      receipt = await approveTx.wait(1); // Wait for 1 confirmation
+      console.timeEnd("approve");
+      expect(receipt.status).to.equal(1, "Transaction failed");
+    } else {
+      console.log("Sufficient allowance already granted.");
+    }
+
+    console.time("batchTransfer");
+
+    receipt = await performBatchTransfer(
+      batchTransferAdminContract,
+      mockERC20Contract.address,
       recipients,
       amounts,
       adminWallet,
